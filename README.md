@@ -12,7 +12,6 @@ Vlasnik: Dodavanje i upravljanje objektima.
 
 Klijent: Rezervacija i organizacija proslava.
 
-## Funkcionalnosti
 
 # Opšte funkcionalnosti
 
