@@ -138,7 +138,7 @@ public class Proslava {
     }
 
     public boolean jeIzmjenjiva(){
-        return datum.plusDays(3).isAfter(LocalDate.now());
+        return LocalDate.now().plusDays(3).isBefore(datum);
     }
 
     public boolean jePlacena(){

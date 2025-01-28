@@ -463,6 +463,7 @@ public class Database {
         for(Sto sto:stolovi){
             SQLQuery = "INSERT INTO `sto`(`Objekat_id`, `broj_mjesta`) " +
                     "VALUES ('"+objekatID+"','"+sto.getBroj_mjesta()+"')";
+
             statement.executeUpdate(SQLQuery);
         }
 
@@ -551,6 +552,13 @@ public class Database {
                 "'','"+proslave.getDatum()+"','"+proslave.getBroj_gostiju()+"','"+ proslave.getUkupna_cijena() +"','"+ proslave.getUplacen_iznos() +"')";
         Statement statement = connection.createStatement();
         statement.executeUpdate(SQLQuery);
+
+        SQLQuery = "SELECT * FROM `proslava` WHERE datum='"+proslave.getDatum()+"' AND Objekat_id='"+proslave.getObjekat().getId()+"' AND NOT Proslavacol='OTKAZAN'";
+        ResultSet set = statement.executeQuery(SQLQuery);
+        set.next();
+        int p = set.getInt("id");
+        proslave.setId(p);
+
         float preostalo = BankovniRacun.getBankovniRacunPoRacunu(getBankovniRacun(),klijent.getBroj_racuna()).getStanje() - proslave.getUkupna_cijena();
         SQLQuery = "UPDATE `bankovni racun` SET stanje = '"+preostalo+"' WHERE `broj_racuna`='"+klijent.getBroj_racuna()+"'";
         statement.executeUpdate(SQLQuery);
@@ -619,7 +627,6 @@ public class Database {
         objekat.setDatumi(objekat.getDatumi()+";"+proslave.getDatum());
         SQLQuery = "UPDATE `objekat` SET datumi='"+objekat.getDatumi()+"' WHERE id='"+objekat.getId()+"'";
         statement.executeUpdate(SQLQuery);
-        proslava.remove(proslave);
     }
 
     public void updateProslava(Proslava proslava,String[] stolovi) throws SQLException {
@@ -630,10 +637,12 @@ public class Database {
         Statement statement = connection.createStatement();
         String SQLQuery;
         for(int i=0;i<stolovi.length;i++){
+
             if(stolovi[i].trim().isEmpty() && !(rasporeds.length>i)){
                 continue;
             }
             stolovi[i] = izbaciPrazanProstor(stolovi[i]);
+            //System.out.println("INSERT INTO `raspored`(`idSto`, `idProslava`, `gosti`) " + "VALUES ('"+stoloviProslave[i].getId()+"','"+ proslava.getId()+"','"+stolovi[i]+"')");
             //System.out.println("UPDATE `raspored` SET gosti='"+stolovi[i]+"' WHERE idSto='"+stoloviProslave[i].getId()+"' AND idProslava='"+proslava.getId()+"'");
             if(rasporeds.length>i)
                 SQLQuery = "UPDATE `raspored` SET gosti='"+stolovi[i]+"' WHERE idSto='"+stoloviProslave[i].getId()+"' AND idProslava='"+proslava.getId()+"'";
@@ -641,6 +650,7 @@ public class Database {
                 SQLQuery = "INSERT INTO `raspored`(`idSto`, `idProslava`, `gosti`) " +
                         "VALUES ('"+stoloviProslave[i].getId()+"','"+ proslava.getId()+"','"+stolovi[i]+"')";
 
+            System.out.println(stolovi[i].split(",").length);
             brojGostiju+=stolovi[i].split(",").length;
             statement.executeUpdate(SQLQuery);
         }
@@ -695,7 +705,7 @@ public class Database {
         String SQLQuery = "UPDATE `proslava` SET Proslavacol='PLACEN',uplacen_iznos='"+proslava.getUkupna_cijena()+"' WHERE id='"+proslava.getId()+"'";
         Statement statement = connection.createStatement();
         statement.executeUpdate(SQLQuery);
-        proslava.setUplacen_iznos(proslava.getUkupna_cijena());
+
 
         float stanje = brKlijent.getStanje() - proslava.getUkupna_cijena() +proslava.getUplacen_iznos();
         SQLQuery = "UPDATE `bankovni racun` SET stanje='"+stanje+"' WHERE id="+brKlijent.getId();
@@ -707,6 +717,7 @@ public class Database {
         statement.executeUpdate(SQLQuery);
         brVlasnik.setStanje(stanje);
 
+        proslava.setUplacen_iznos(proslava.getUkupna_cijena());
     }
 
     public String izbaciPrazanProstor(String s){

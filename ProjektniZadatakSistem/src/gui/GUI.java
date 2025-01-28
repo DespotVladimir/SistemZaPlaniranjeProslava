@@ -768,7 +768,7 @@ public class GUI extends Application {
 
                 TextArea txtMeni = new TextArea();
 
-                txtMeni.setText("Meni : "+ pr.getMeni().getOpis());
+                txtMeni.setText("Meni : "+ pr.getMeni().getOpis() + ";\nCijena po osobi: " + pr.getMeni().getCijena_po_osobi());
                 txtMeni.setEditable(false);
                 txtMeni.setMinWidth(200);
                 txtMeni.setMaxWidth(200);
@@ -778,8 +778,13 @@ public class GUI extends Application {
 
                 Label lblGreska = new Label("");
                 lblGreska.setTextFill(Color.RED);
+
+
+                // IZMJENI PROSLAVU
+
                 Button btnIzmjeni =  new Button("Izmjeni proslavu ");
                 btnIzmjeni.setOnAction(_->{
+
                     if(pr.jeOtkazana()){
                         lblGreska.setText("Nemoguce izmjeniti proslavu \n(Proslava je prošla)");
 
@@ -896,6 +901,7 @@ public class GUI extends Application {
                             Label stanjeKlijenta = new Label("Stanje na racunu: "+BankovniRacun.getBankovniRacunPoRacunu(db.getBankovniRacun(),klijent.getBroj_racuna()).getStanje());
                             srednjaStrana.getChildren().clear();
                             srednjaStrana.getChildren().add(stanjeKlijenta);
+                            lblStanje.setText("Stanje na racunu: "+BankovniRacun.getBankovniRacunPoRacunu(db.getBankovniRacun(),klijent.getBroj_racuna()).getStanje());
                         } catch (SQLException e) {
                             System.out.println(e.getMessage());
                             throw new RuntimeException(e);
@@ -906,9 +912,11 @@ public class GUI extends Application {
                         desnaStrana.getChildren().clear();
 
                     });
-                    desnaStrana.getChildren().addAll(lblIzmjenagostiju,lblFormatIzmjena,spIzmjenaRasporeda,lblGreskaIzmjena,btnSacuvaj,pswPotvrdaSifre,lblPotvrdiS,btnPlati);
+                    desnaStrana.getChildren().addAll(lblIzmjenagostiju,lblFormatIzmjena,spIzmjenaRasporeda,lblGreskaIzmjena,btnSacuvaj,lblPotvrdiS,pswPotvrdaSifre,btnPlati);
 
                 });
+
+                // OTKAZI PROSLAVU
 
                 Button btnOtkazi =  new Button("Otkaži proslavu ");
                 btnOtkazi.setOnAction(_->{
@@ -936,6 +944,8 @@ public class GUI extends Application {
                         throw new RuntimeException(e);
                     }
                 });
+
+
 
                 srednjaStrana.getChildren().addAll(lblImeObjekta,lblAdresaObjekta,lblGradObjekta,lblDatumProslave,lblBrojGostiju,txtMeni);
                 srednjaStrana.getChildren().addAll(lblRasporedGostiju,hOdabirIzgleda,spRasporedGostiju,btnIzmjeni,btnOtkazi,lblGreska);
@@ -1068,7 +1078,7 @@ public class GUI extends Application {
                 Label lblAdresa = new Label("Adresa: " + ob.getAdresa());
                 Label lblGrad = new Label("Grad: " + ob.getGrad());
                 Label lblBrojMjesta = new Label("Broj mjesta: " + ob.getBroj_mjesta());
-                Label lblBrojStolova = new Label("Broj stolova" + ob.getBroj_stolova());
+                Label lblBrojStolova = new Label("Broj stolova: " + ob.getBroj_stolova());
                 Label lblCijenaRezervacije = new Label("Cijena rezervacije: " + ob.getCijena_rezervacije());
                 TextArea txtMeniji = new TextArea();
                 txtMeniji.setPrefWidth(200);
@@ -1081,7 +1091,31 @@ public class GUI extends Application {
                 }
 
                 Set<LocalDate> slobodniDatumi = Set.of(ob.getSlobodniDatumi());
-                GridPane kalendar = getKalendarKlijentu(slobodniDatumi,false);
+                //GridPane kalendar = getKalendarKlijentu(slobodniDatumi,false,m);
+
+                final long[] m = {0};
+                HBox mjeseciPlus = new HBox();
+                Button btnKalendarLijevo = new Button("<<");
+                Button btnKalendarDesno = new Button(">>");
+                mjeseciPlus.getChildren().addAll(btnKalendarLijevo,btnKalendarDesno);
+
+                final GridPane[] kalendar = {getKalendarKlijentu(slobodniDatumi, false, m[0])};
+
+                btnKalendarLijevo.setOnAction(_->{
+                    gornjiDio.getChildren().remove(7);
+                    m[0]--;
+                    kalendar[0] = getKalendarKlijentu(slobodniDatumi, false, m[0]);
+                    gornjiDio.getChildren().add(7,kalendar[0]);
+                });
+                btnKalendarDesno.setOnAction(_->{
+                    gornjiDio.getChildren().remove(7);
+                    m[0]++;
+                    kalendar[0] = getKalendarKlijentu(slobodniDatumi, false, m[0]);
+                    gornjiDio.getChildren().add(7,kalendar[0]);
+                });
+
+
+                vPregledObjekta.getChildren().addAll(mjeseciPlus,kalendar[0]);
 
                 Button btnRezervisi = new Button("Rezerviši");
                 btnRezervisi.setOnAction( _ -> {
@@ -1131,12 +1165,17 @@ public class GUI extends Application {
                     Button potvrdiRezervaciju = new Button("Potvrdi");
 
                     potvrdiRezervaciju.setOnAction(_ -> {
+
                         if(!pswKlijenta.getText().equals(klijent.getLozinka()))
                         {
                             lblGreska.setText("Ne podudara se šifra");
                             return;
                         }
                         LocalDate datumZaProslave = odabranDatum.getValue();
+                        if(LocalDate.now().plusDays(3).isAfter(datumZaProslave)){
+                            lblGreska.setText("Nemoguće rezervisati 3 dana prije");
+                            return;
+                        }
                         LocalDate[] sl = ob.getSlobodniDatumi();
                         if(datumZaProslave.isBefore(LocalDate.now()))
                         {
@@ -1182,7 +1221,7 @@ public class GUI extends Application {
 
                 });
 
-                gornjiDio.getChildren().addAll(lblIme,lblAdresa,lblGrad,lblBrojMjesta,lblBrojStolova,lblCijenaRezervacije,kalendar);
+                gornjiDio.getChildren().addAll(lblIme,lblAdresa,lblGrad,lblBrojMjesta,lblBrojStolova,lblCijenaRezervacije,mjeseciPlus,kalendar[0]);
                 donjiDio.getChildren().addAll(txtMeniji,btnRezervisi);
                 vPregledObjekta.getChildren().addAll(gornjiDio,donjiDio);
 
@@ -1470,11 +1509,28 @@ public class GUI extends Application {
                         }
                         odabraniDani.addAll(Arrays.asList(ob.getSlobodniDatumi()));
 
-                        GridPane kalendar = getKalendar(odabraniDani,zauzetiDani);
+                        final long[] m = {0};
+                        HBox mjeseciPlus = new HBox();
+                        Button btnKalendarLijevo = new Button("<<");
+                        Button btnKalendarDesno = new Button(">>");
+                        mjeseciPlus.getChildren().addAll(btnKalendarLijevo,btnKalendarDesno);
 
+                        final GridPane[] kalendar = {getKalendar(odabraniDani, zauzetiDani, m[0])};
 
+                        btnKalendarLijevo.setOnAction(_->{
+                            desnaStrana.getChildren().remove(1);
+                            m[0]--;
+                            kalendar[0] = getKalendar(odabraniDani,zauzetiDani, m[0]);
+                            desnaStrana.getChildren().add(1,kalendar[0]);
+                        });
+                        btnKalendarDesno.setOnAction(_->{
+                            desnaStrana.getChildren().remove(1);
+                            m[0]++;
+                            kalendar[0] = getKalendar(odabraniDani,zauzetiDani, m[0]);
+                            desnaStrana.getChildren().add(1,kalendar[0]);
+                        });
 
-                        desnaStrana.getChildren().add(kalendar);
+                        desnaStrana.getChildren().addAll(mjeseciPlus, kalendar[0]);
 
                         Button btnPromjeniDatume = new Button("Potvrdi promjene");
                         btnPromjeniDatume.setOnAction(_->{
@@ -1570,7 +1626,6 @@ public class GUI extends Application {
         spProslave.setContent(proslaveSve);
     }
 
-
     // Prikazuje sve objekte koji su odobreni ali nisu podeseni i odbijeni
     private void updatePorukeObjekata(ScrollPane spObjekti,VBox srednjaStrana,Vlasnik vlasnik,Label lbl,VBox desnaStrana)
     {
@@ -1624,12 +1679,29 @@ public class GUI extends Application {
                             zauzetiDani.add(p.getDatum());
                         }
                         odabraniDani.addAll(Arrays.asList(ob.getSlobodniDatumi()));
+                        final long[] m = {0};
+                        HBox mjeseciPlus = new HBox();
+                        Button btnKalendarLijevo = new Button("<<");
+                        Button btnKalendarDesno = new Button(">>");
+                        mjeseciPlus.getChildren().addAll(btnKalendarLijevo,btnKalendarDesno);
 
-                        GridPane kalendar = getKalendar(odabraniDani,zauzetiDani);
+                        final GridPane[] kalendar = {getKalendar(odabraniDani, zauzetiDani, m[0])};
+
+                        btnKalendarLijevo.setOnAction(_->{
+                            desnaStrana.getChildren().remove(1);
+                            m[0]--;
+                            kalendar[0] = getKalendar(odabraniDani,zauzetiDani, m[0]);
+                            desnaStrana.getChildren().add(1,kalendar[0]);
+                        });
+                        btnKalendarDesno.setOnAction(_->{
+                            desnaStrana.getChildren().remove(1);
+                            m[0]++;
+                            kalendar[0] = getKalendar(odabraniDani,zauzetiDani, m[0]);
+                            desnaStrana.getChildren().add(1,kalendar[0]);
+                        });
 
 
-
-                        desnaStrana.getChildren().add(kalendar);
+                        desnaStrana.getChildren().addAll(mjeseciPlus,kalendar[0]);
 
                         Button btnPromjeniDatume = new Button("Potvrdi promjene");
                         btnPromjeniDatume.setOnAction(_->{
@@ -1877,6 +1949,7 @@ public class GUI extends Application {
     // Forma za slanje novog objekta
     private void novaObjekatForma(VBox desnaStrana,Vlasnik vlasnik,VBox srednjaStrana){
         desnaStrana.getChildren().clear();
+        srednjaStrana.getChildren().clear();
 
         HBox hBoxIme = new HBox();
         Label lblImeObjekta = new Label("Naziv: ");
@@ -1947,7 +2020,6 @@ public class GUI extends Application {
                     || txtImeObjekta.getText().isEmpty()
                     || txtBrojMjesta.getText().isEmpty()
                     || txtCijenaRezervacije.getText().isEmpty()
-                    || sviMeniji.getChildren().isEmpty()
             )
             {
                 lblGreska.setText("Moraju biti sva polja popunjena. ");
@@ -2045,9 +2117,18 @@ public class GUI extends Application {
         txtMeni.setWrapText(true);
         txtMeni.setEditable(editable);
 
-        TextField txtBroj = getBrojcanoPolje();
-        txtBroj.setText(Float.toString(broj));
+        TextField txtBroj;
+        if(editable){
+            txtBroj = getBrojcanoPolje();
+            txtBroj.setText(Float.toString(broj));
+
+        }
+        else{
+            txtBroj = new TextField();
+            txtBroj.setText(Float.toString(broj));
+        }
         txtBroj.setPrefWidth(50);
+        txtBroj.setEditable(editable);
 
         hbMeni.getChildren().addAll(txtMeni,txtBroj);
         return hbMeni;
@@ -2093,13 +2174,13 @@ public class GUI extends Application {
         return Numeric_Field;
     }
 
-    private GridPane getKalendar(Set<LocalDate> odabraniDani,Set<LocalDate> zauzetiDani){
+    private GridPane getKalendar(Set<LocalDate> odabraniDani,Set<LocalDate> zauzetiDani,long mjeseci){
         GridPane kalendar = new GridPane();
         kalendar.setHgap(10);
         kalendar.setVgap(10);
         kalendar.setAlignment(Pos.CENTER);
 
-        YearMonth trenutniMjesec = YearMonth.now();
+        YearMonth trenutniMjesec = YearMonth.now().plusMonths(mjeseci);
 
         LocalDate dan1 = trenutniMjesec.atDay(1);
         int prviDanSedmice = dan1.getDayOfWeek().getValue();
@@ -2109,10 +2190,10 @@ public class GUI extends Application {
         String[] dani = {"Pon", "Uto", "Sri", "Čet", "Pet", "Sub", "Ned"};
         for (int i = 0; i < dani.length; i++) {
             Label lblDani = new Label(dani[i]);
-            kalendar.add(lblDani, i, 0);
+            kalendar.add(lblDani, i, 1);
         }
 
-        int vrsta = 1;
+        int vrsta = 2;
         int kolona = prviDanSedmice - 1;
 
         for (int dan = 1; dan <= daniMjeseca; dan++) {
@@ -2158,13 +2239,13 @@ public class GUI extends Application {
         return kalendar;
     }
 
-    private GridPane getKalendarKlijentu(Set<LocalDate> slobodniDani, boolean editable){
+    private GridPane getKalendarKlijentu(Set<LocalDate> slobodniDani, boolean editable,long mjeseci){
         GridPane kalendar = new GridPane();
         kalendar.setHgap(10);
         kalendar.setVgap(10);
         kalendar.setAlignment(Pos.CENTER);
 
-        YearMonth trenutniMjesec = YearMonth.now();
+        YearMonth trenutniMjesec = YearMonth.now().plusMonths(mjeseci);
 
         LocalDate dan1 = trenutniMjesec.atDay(1);
         int prviDanSedmice = dan1.getDayOfWeek().getValue();
